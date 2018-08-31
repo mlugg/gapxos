@@ -49,7 +49,7 @@ if [ -d "./iso/" ]; then
 fi
 
 echo "Running gapxos in QEMU..."
-qemu-system-x86_64 -boot d -cdrom os.iso -m 256 -s -d guest_errors -no-acpi &
+qemu-system-x86_64 -boot d -cdrom os.iso -m 256 -s -d guest_errors &
 
 sleep 2s
 
