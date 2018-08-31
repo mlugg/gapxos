@@ -1,5 +1,5 @@
 .POSIX:
-.PHONY: all clean
+.PHONY: all clean test
 
 all:
 	+$(MAKE) -C loader
