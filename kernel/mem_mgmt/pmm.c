@@ -26,7 +26,7 @@ uint64_t get_stack_size(struct mmap_entry *mmap, uint32_t entries) {
     if (mmap[i].type == 1)
       size += mmap[i].length / 4096 * sizeof(void *);   
   return size;
-};
+}
 
 // TODO: make this less of a fuckin mess
 // - What, this function?
