@@ -9,7 +9,7 @@ CFLAGS := -Wall -Werror -m64 -z max-page-size=0x1000 -mno-red-zone -mno-mmx -mno
 # This is a hack, but its necessary for the Makefile to work on Gentoo's GCC
 # toolchain. FIXME.
 
-ifneq (,$(findstring -gentoo,$(shell uname -r)))
+ifeq ($(shell . /etc/os-release && echo $$NAME),Gentoo)
 	CFLAGS := ${CFLAGS} -fno-stack-protector
 endif
 

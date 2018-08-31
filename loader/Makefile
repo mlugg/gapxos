@@ -9,7 +9,7 @@ CFLAGS := -Wall -Werror -m32 -no-pie -fno-pic -c -g -O0
 # This is a hack, but its necessary for the Makefile to work on Gentoo's GCC
 # toolchain. FIXME.
 
-ifneq (,$(findstring -gentoo,$(shell uname -r)))
+ifeq ($(shell . /etc/os-release && echo $$NAME),Gentoo)
 	CFLAGS := ${CFLAGS} -fno-stack-protector
 endif
 
