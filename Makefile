@@ -13,3 +13,12 @@ clean:
 
 test:
 	./test/test.sh
+
+iso:
+	+${MAKE} all
+	mkdir -p ./iso/boot/grub
+	cp ./kernel/kernel ./iso/boot/kernel.bin
+	cp ./loader/loader ./iso/boot/loader.bin
+	cp ./bootloader/grub.cfg ./iso/boot/grub/grub.cfg
+	grub-mkrescue -o ./os.iso ./iso
+	rm -rf ./iso
