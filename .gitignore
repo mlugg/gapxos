@@ -3,3 +3,4 @@
 kernel/kernel
 loader/loader
 *.iso
+iso/
