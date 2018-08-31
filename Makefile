@@ -11,3 +11,5 @@ clean:
 	rm -rf ./iso
 	rm -rf ./os.iso
 
+test:
+	./test/test.sh
