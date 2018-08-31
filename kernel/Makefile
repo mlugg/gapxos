@@ -6,6 +6,15 @@ LDFLAGS := -m64 -ffreestanding -T $(LINKER) -nostdlib -lgcc
 
 CFLAGS := -Wall -Werror -m64 -z max-page-size=0x1000 -mno-red-zone -mno-mmx -mno-sse2 -c -g
 
+# This is a hack, but its necessary for the Makefile to work on Gentoo's GCC
+# toolchain. FIXME.
+
+UNAME := $(shell uname -r)
+
+ifneq (,$(findstring -gentoo,${UNAME}))
+	CFLAGS := ${CFLAGS} -fno-stack-protector
+endif
+
 SOURCE := $(wildcard *.c) $(wildcard **/*.c)
 OBJECTS := $(patsubst %.c,%.o,$(SOURCE))
 
