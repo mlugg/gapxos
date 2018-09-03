@@ -6,9 +6,8 @@ LDFLAGS := -m32 -ffreestanding -T $(LINKER) -nostdlib -lgcc -no-pie -fno-pic -O0
 
 CFLAGS := -Wall -Werror -m32 -no-pie -fno-pic -c -g -O0
 
-# This is a hack, but its necessary for the Makefile to work on Gentoo's GCC
-# toolchain. FIXME.
-
+# The below `ifeq` is a hack to fix compiling on the GCC toolchain installed on
+# Gentoo systems.
 ifeq ($(shell . /etc/os-release && echo $$NAME),Gentoo)
 	CFLAGS := ${CFLAGS} -fno-stack-protector
 endif
