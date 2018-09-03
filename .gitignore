@@ -10,3 +10,14 @@ iso/
 *~
 .*.swp
 .*.swo
+
+# Emacs (common editor files)
+# -*- mode: gitignore; -*-
+*~
+\#*\#
+/.emacs.desktop
+/.emacs.desktop.lock
+*.elc
+auto-save-list
+tramp
+.\#*
