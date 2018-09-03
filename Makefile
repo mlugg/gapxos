@@ -1,5 +1,5 @@
 .POSIX:
-.PHONY: all clean test
+.PHONY: all clean iso test
 
 all:
 	+$(MAKE) -C loader
@@ -11,14 +11,15 @@ clean:
 	rm -rf ./iso
 	rm -rf ./os.iso
 
-test:
-	./test/test.sh
-
-iso:
-	+${MAKE} all
+iso: all
 	mkdir -p ./iso/boot/grub
 	cp ./kernel/kernel ./iso/boot/kernel.bin
 	cp ./loader/loader ./iso/boot/loader.bin
 	cp ./bootloader/grub.cfg ./iso/boot/grub/grub.cfg
 	grub-mkrescue -o ./os.iso ./iso
 	rm -rf ./iso
+
+test: iso
+	qemu-system-x86_64 -boot d -cdrom os.iso -m 64 -s -d guest_errors &
+	sleep 2s
+	gdb -x ./dbg/gdb_start
