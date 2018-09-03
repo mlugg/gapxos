@@ -1,6 +1,12 @@
+# Output files
 *.o
 *.sym
 kernel/kernel
 loader/loader
 *.iso
 iso/
+
+# Common editor files
+*~
+.*.swp
+.*.swo
