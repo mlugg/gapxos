@@ -31,6 +31,7 @@ stack_bottom:
 stack_top:
 
 # Allocate space for page structures
+.align 0x1000
 page_structs:
 .skip 4194304 # 4MiB
 
