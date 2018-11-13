@@ -6,10 +6,17 @@ LDFLAGS := -m64 -ffreestanding -T $(LINKER) -nostdlib -lgcc
 
 CFLAGS := -Wall -Werror -m64 -z max-page-size=0x1000 -mno-red-zone -mno-mmx -mno-sse2 -c -g
 
-# The below `ifeq` is a hack to fix compiling on the GCC toolchain installed on
+# This is a hack to fix compiling on the GCC toolchain installed on
 # Gentoo systems.
 ifeq ($(shell . /etc/os-release && echo $$NAME),Gentoo)
 	CFLAGS := ${CFLAGS} -fno-stack-protector
+endif
+
+# This is *also* a hack to fix compiling on the (hardened) GCC toolchain
+# installed on Fedora systems.
+ifeq ($(shell . /etc/os-release && echo $$NAME),Fedora)
+	CFLAGS := ${CFLAGS} -fPIE -fPIC
+	LDFLAGS := ${LDFLAGS} -pie
 endif
 
 SOURCE := $(wildcard *.c) $(wildcard **/*.c)

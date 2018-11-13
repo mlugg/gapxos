@@ -1,6 +1,15 @@
 .POSIX:
 .PHONY: all clean iso test
 
+GRUB := grub-mkrescue
+GRUB := ""
+
+ifeq  (, $(shell which grub2-mkrescue))
+	GRUB := "grub-mkrescue"
+else
+	GRUB := grub2-mkrescue
+endif
+
 all:
 	+$(MAKE) -C loader
 	+$(MAKE) -C kernel
@@ -16,7 +25,7 @@ iso: all
 	cp ./kernel/kernel ./iso/boot/kernel.bin
 	cp ./loader/loader ./iso/boot/loader.bin
 	cp ./bootloader/grub.cfg ./iso/boot/grub/grub.cfg
-	grub-mkrescue -o ./os.iso ./iso
+	${GRUB} -o ./os.iso ./iso
 	rm -rf ./iso
 
 test: iso
