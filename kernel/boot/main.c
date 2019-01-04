@@ -1,6 +1,6 @@
 #include <stdint.h>
 #include "../output/display.h"
-#include "../mem_mgmt/pmm.h"
+#include "../system/mem_mgmt/pmm.h"
 #include "common_boot.h"
 #include "../system/system.h"
 
@@ -74,7 +74,7 @@ void interpret_multiboot(uint32_t *mb, struct mb_info *info) {
   }
 }
 
-void kernel_main(void *mb_structure, void *krn_start, void *krn_end) {
+void kernel_main(void *mb_structure, void *krn_start, void *krn_end, void *stack, uint64_t stack_size) {
   struct mb_info info = {0};
 
   interpret_multiboot(mb_structure, &info);
@@ -123,10 +123,11 @@ void kernel_main(void *mb_structure, void *krn_start, void *krn_end) {
   void *page_start, *page_end;
   get_page_table_area(&page_start, &page_end);
 
-  struct unsafe_range unsafe[4];
+  struct unsafe_range unsafe[5];
   unsafe[0] = (struct unsafe_range) {.start = krn_start, .end = krn_end};
   unsafe[1] = (struct unsafe_range) {.start = page_start, .end = page_end};
   unsafe[2] = (struct unsafe_range) {.start = info.mmap.map, .end = info.mmap.map + info.mmap.count};
+  unsafe[3] = (struct unsafe_range) {.start = stack, .end = (char *)stack + stack_size};
 
   void *safe = 0;
 
@@ -135,7 +136,7 @@ void kernel_main(void *mb_structure, void *krn_start, void *krn_end) {
       void *base = info.mmap.map[i].base_addr;
       uint64_t size = info.mmap.map[i].length;
 
-      safe = check_memory_bounds(base, size, required, unsafe, 3);
+      safe = check_memory_bounds(base, size, required, unsafe, 4);
       if (safe)
         break;
     }
@@ -148,14 +149,15 @@ void kernel_main(void *mb_structure, void *krn_start, void *krn_end) {
 
   // safe now contains the address of `required` bytes of contiguous physical memory
 
-  unsafe[3] = (struct unsafe_range) {.start = safe, .end = (char *)safe + required};
+  unsafe[4] = (struct unsafe_range) {.start = safe, .end = (char *)safe + required};
 
-  init_pmm(safe, info.mmap.map, info.mmap.count, unsafe, 4);
+  init_pmm(safe, info.mmap.map, info.mmap.count, unsafe, 5);
 
-  system_main(acpi_rsdt, info.acpi.version);
+  struct system_info sys_info = {0};
+  sys_info.acpi = acpi_rsdt;
+  sys_info.acpi_version = info.acpi.version;
 
-  // TODO: Move the stack pointer and allocate a MiB or so to the kernel stack
-  // (The stack pointer can be moved since the current args have been passed in registers and we don't return)
+  system_main(sys_info);
 
   // We should never get here
   __asm__ volatile("hlt");

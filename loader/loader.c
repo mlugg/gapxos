@@ -5,12 +5,13 @@
 typedef uint64_t ptr64;
 
 extern void setup_longmode();
-extern void load_kernel(ptr64 kern_addr, void *mb_structure, void *krn_start, void *krn_end);
+extern void load_kernel(ptr64 kern_addr, void *mb_structure, void *krn_start, void *krn_end, uint64_t stack_p, uint64_t stack_v, uint64_t stack_size);
 extern void setup_gdt(void *, uint32_t);
 
 #define PAGE_PRESENT (1<<0)  // Present
 #define PAGE_RW      (1<<1)  // Read and write
 #define PAGE_SIZE    (1<<7)  // Points directly to a page
+#define PAGE_NX (0x8000000000000000)
 
 uint64_t *pml4t;
 
@@ -74,7 +75,7 @@ void *find_elf64_phys_origin(uint64_t size) {
 
 void *page_free_point;
 
-void add_page(ptr64 virt_addr, ptr64 phys_addr) {
+void add_page(ptr64 virt_addr, ptr64 phys_addr, uint8_t exec) {
   virt_addr &= 0xFFFFFFFFFFFF; // Removes high 16 bits
   int pml4_idx = virt_addr / 0x8000000000; // 512 GiB
   virt_addr &= 0x7FFFFFFFFF; // Removes next 9 bits
@@ -88,6 +89,8 @@ void add_page(ptr64 virt_addr, ptr64 phys_addr) {
 
   if (!(pml4t[pml4_idx] & PAGE_PRESENT)) {
     pml4t[pml4_idx] = (uint32_t) page_free_point | PAGE_PRESENT | PAGE_RW;
+    if (exec) pml4t[pml4_idx] &= ~PAGE_NX;
+    else pml4t[pml4_idx] |= PAGE_NX;
     page_free_point = (char *)page_free_point + 0x1000;
   }
 
@@ -95,6 +98,8 @@ void add_page(ptr64 virt_addr, ptr64 phys_addr) {
 
   if (!(pdpt[pdp_idx] & PAGE_PRESENT)) {
     pdpt[pdp_idx] = (uint32_t) page_free_point | PAGE_PRESENT | PAGE_RW;
+    if (exec) pdpt[pdp_idx] &= ~PAGE_NX;
+    else pdpt[pdp_idx] |= PAGE_NX;
     page_free_point = (char *)page_free_point + 0x1000;
   }
 
@@ -102,12 +107,16 @@ void add_page(ptr64 virt_addr, ptr64 phys_addr) {
 
   if (!(pdt[pd_idx] & PAGE_PRESENT)) {
     pdt[pd_idx] = (uint32_t) page_free_point | PAGE_PRESENT | PAGE_RW;
+    if (exec) pdt[pd_idx] &= ~PAGE_NX;
+    else pdt[pd_idx] |= PAGE_NX;
     page_free_point = (char *)page_free_point + 0x1000;
   }
 
   uint64_t *pt = (void *)(uint32_t)(pdt[pd_idx] & 0xFFFFFFFFFFFFF000); // Remove lower 12 bits
 
   pt[p_idx] = phys_addr | PAGE_PRESENT | PAGE_RW;
+  if (exec) pt[p_idx] &= ~PAGE_NX;
+  else pt[p_idx] |= PAGE_NX;
 }
 
 uint64_t load_elf64_module(void *mod_start, void *mod_end, void **load_start, void **load_end) {
@@ -163,7 +172,7 @@ uint64_t load_elf64_module(void *mod_start, void *mod_end, void **load_start, vo
       zero_memory(phys_location, phdr->p_memsz);
       memcpy(phys_location, src, phdr->p_filesz);
       for (int j = 0; j < phdr->p_memsz; j += 4096)
-        add_page(phdr->p_vaddr + j, (ptr64)(uint32_t)phys_location + j);
+        add_page(phdr->p_vaddr + j, (ptr64)(uint32_t)phys_location + j, phdr->p_flags & 1);
       phys_location = (char *)phys_location + phdr->p_memsz;
     }
     phdr = (void *)((char *)phdr + ehdr->e_phentsize);
@@ -228,7 +237,7 @@ void encodeGdtEntry(uint8_t *target, struct GDT source)
   target[5] = source.type;
 }
 
-void lmain(void *mb_structure, void *page_structure_mem) {
+void lmain(void *mb_structure, void *page_structure_mem, void *stack, uint32_t stack_size) {
   if (!mb_structure)
     __asm__("hlt");
   // TODO: Hardcode GDT
@@ -246,6 +255,9 @@ void lmain(void *mb_structure, void *page_structure_mem) {
   setup_gdt(gdt, 24);
 
   init_page_structure(page_structure_mem);
+
+  uint64_t stack_virt = 0xfffffffffffff000;
+  add_page(stack_virt, (uint32_t)stack, 0); // Map stack to end of memory
 
   void *image_end = (void *)((uint32_t)page_structure_mem + 4194304);
 
@@ -286,5 +298,5 @@ void lmain(void *mb_structure, void *page_structure_mem) {
 
   setup_longmode(pml4t);
 
-  load_kernel(kernel_addr, mb_structure, krn_start, krn_end);
+  load_kernel(kernel_addr, mb_structure, krn_start, krn_end, (uint32_t)stack, stack_virt, stack_size);
 }

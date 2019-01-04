@@ -27,7 +27,7 @@ multiboot_header_end:
 .section .bss
 .align 16
 stack_bottom:
-.skip 16384 # 16 KiB
+.skip 65546 # 64 KiB
 stack_top:
 
 # Allocate space for page structures
@@ -47,6 +47,8 @@ mov $stack_top, %esp # Set up a stack
 mov $stack_top, %ebp
 
 # Push args in reverse order
+push $65536 # Stack size
+push $stack_bottom
 push $page_structs
 push %ebx   # Pointer to multiboot info structure
 call lmain # Loader
@@ -120,6 +122,7 @@ pop %edi
 mov $0xC0000080, %ecx
 rdmsr
 or $(1<<8), %eax
+or $(1<<11), %eax
 wrmsr
 
 # Enable paging again
@@ -197,4 +200,14 @@ movl 12(%esp), %edi  # Pointer to mb structure
 movl 16(%esp), %esi  # Pointer to krn_start
 movl 20(%esp), %edx  # Pointer to krn_end
 
-call *%rax
+movq 24(%esp), %rcx # Pointer to bottom of stack (physical)
+movq 40(%esp), %r8 # Length of stack
+
+
+movq 32(%esp), %rbx # Pointer to bottom of stack (virtual)
+
+mov %rbx, %rsp
+add $4095, %rsp
+mov %rsp, %rbp
+
+jmp *%rax

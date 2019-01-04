@@ -3,6 +3,11 @@
 
 #include <stdint.h>
 
-void system_main(void *acpi, uint32_t acpi_version);
+struct system_info {
+  void *acpi;
+  uint32_t acpi_version;
+};
+
+void system_main(struct system_info info);
 
 #endif

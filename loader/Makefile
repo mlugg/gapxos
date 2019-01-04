@@ -4,13 +4,7 @@
 LINKER := link.ld
 LDFLAGS := -m32 -ffreestanding -T $(LINKER) -nostdlib -lgcc -no-pie -fno-pic -O0
 
-CFLAGS := -Wall -Werror -m32 -no-pie -fno-pic -c -g -O0
-
-# The below `ifeq` is a hack to fix compiling on the GCC toolchain installed on
-# Gentoo systems.
-ifeq ($(shell . /etc/os-release && echo $$NAME),Gentoo)
-	CFLAGS := ${CFLAGS} -fno-stack-protector
-endif
+CFLAGS := -Wall -Werror -m32 -no-pie -fno-pic -c -g -O0 -fno-stack-protector
 
 SOURCE := $(wildcard *.c)
 OBJECTS := $(patsubst %.c,%.o,$(SOURCE))

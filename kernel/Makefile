@@ -1,16 +1,11 @@
+.SHELL := /bin/bash -O globstar
 .POSIX:
 .PHONY: all clean
 
 LINKER := link.ld
 LDFLAGS := -m64 -ffreestanding -T $(LINKER) -nostdlib -lgcc
 
-CFLAGS := -Wall -Werror -m64 -z max-page-size=0x1000 -mno-red-zone -mno-mmx -mno-sse2 -c -g
-
-# The below `ifeq` is a hack to fix compiling on the GCC toolchain installed on
-# Gentoo systems.
-ifeq ($(shell . /etc/os-release && echo $$NAME),Gentoo)
-	CFLAGS := ${CFLAGS} -fno-stack-protector
-endif
+CFLAGS := -Wall -Werror -m64 -z max-page-size=0x1000 -mno-red-zone -mno-mmx -mno-sse2 -c -g -fno-stack-protector
 
 SOURCE := $(wildcard *.c) $(wildcard **/*.c)
 OBJECTS := $(patsubst %.c,%.o,$(SOURCE))

@@ -13,7 +13,9 @@ void get_page_table_area(void **start, void **end) {
   *start = *end = pml4t;
   
   for (int i = 0; i < 512; ++i) {
-    uint64_t *pdpt = (void *)(pml4t[i] & 0xFFFFFFFFFFFFF000); // Remove lower 12 bits
+    uint64_t *pdpt = (void *)(pml4t[i] & 0x7FFFFFFFFFFFF000); // Remove lower 12 bits
+    if ((uint64_t) pdpt & 0xf00000000000000)
+      pdpt = (void *) ((uint64_t) pdpt | 0x8000000000000000);
 
     if (!pdpt)
       continue;
@@ -28,7 +30,9 @@ void get_page_table_area(void **start, void **end) {
 
 
     for (int j = 0; j < 512; ++j) {
-      uint64_t *pdt = (void *)(pdpt[j] & 0xFFFFFFFFFFFFF000); // Remove lower 12 bits
+      uint64_t *pdt = (void *)(pdpt[j] & 0x7FFFFFFFFFFFF000); // Remove lower 12 bits
+      if ((uint64_t) pdt & 0xf00000000000000)
+        pdt = (void *) ((uint64_t) pdt | 0x8000000000000000);
 
       if (!pdt)
         continue;
@@ -42,7 +46,9 @@ void get_page_table_area(void **start, void **end) {
         *end = pdt;
 
       for (int k = 0; k < 512; ++k) {
-        uint64_t *pt = (void *)(pdt[k] & 0xFFFFFFFFFFFFF000); // Remove lower 12 bits
+        uint64_t *pt = (void *)(pdt[k] & 0x7FFFFFFFFFFFF000); // Remove lower 12 bits
+        if ((uint64_t) pt & 0xf00000000000000)
+          pt = (void *) ((uint64_t) pt | 0x8000000000000000);
 
         if (!pt)
           continue;
