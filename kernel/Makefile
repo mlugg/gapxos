@@ -1,4 +1,4 @@
-.SHELL := /bin/bash -O globstar
+SHELL := /bin/bash -O globstar
 .POSIX:
 .PHONY: all clean
 
@@ -7,10 +7,10 @@ LDFLAGS := -m64 -ffreestanding -T $(LINKER) -nostdlib -lgcc -pie
 
 CFLAGS := -Wall -Werror -m64 -z max-page-size=0x1000 -mno-red-zone -mno-mmx -mno-sse2 -c -g -fno-stack-protector -fPIE -fPIC
 
-SOURCE := $(wildcard *.c) $(wildcard **/*.c)
+SOURCE := $(shell ls **/*.c)
 OBJECTS := $(patsubst %.c,%.o,$(SOURCE))
 
-ASM_SOURCE := $(wildcard *.s) $(wildcard **/*.s)
+ASM_SOURCE := $(shell ls **/*.s)
 ASM_OBJECTS := $(patsubst %.s,%.o,$(ASM_SOURCE))
 
 all: kernel
