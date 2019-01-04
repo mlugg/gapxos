@@ -3,9 +3,9 @@
 .PHONY: all clean
 
 LINKER := link.ld
-LDFLAGS := -m64 -ffreestanding -T $(LINKER) -nostdlib -lgcc
+LDFLAGS := -m64 -ffreestanding -T $(LINKER) -nostdlib -lgcc -pie
 
-CFLAGS := -Wall -Werror -m64 -z max-page-size=0x1000 -mno-red-zone -mno-mmx -mno-sse2 -c -g -fno-stack-protector
+CFLAGS := -Wall -Werror -m64 -z max-page-size=0x1000 -mno-red-zone -mno-mmx -mno-sse2 -c -g -fno-stack-protector -fPIE -fPIC
 
 SOURCE := $(wildcard *.c) $(wildcard **/*.c)
 OBJECTS := $(patsubst %.c,%.o,$(SOURCE))
