@@ -3,6 +3,6 @@
 
 #include <stdint.h>
 
-char *itoa(int64_t, char *, uint8_t);
+char *itoa(uint64_t, char *, uint8_t);
 
 #endif

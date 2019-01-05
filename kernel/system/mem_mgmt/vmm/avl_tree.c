@@ -50,7 +50,7 @@ struct avl_node *create_node() {
 }
 
 void free_node(struct avl_node *node) {
-  free_nodez_idx--;
+//  free_nodez_idx--;
 }
 
 struct avl_node *_insert_node(struct avl_node *node, uint64_t addr, uint64_t page_count) {
@@ -58,6 +58,8 @@ struct avl_node *_insert_node(struct avl_node *node, uint64_t addr, uint64_t pag
     node = create_node();
     node->addr = addr;
     node->page_count = page_count;
+    node->right = node->left = NULL;
+    node->allocated = 0;
   } else if (addr < node->addr) {
     node->left = _insert_node(node->left, addr, page_count);
   } else if (addr > node->addr) {
@@ -65,6 +67,7 @@ struct avl_node *_insert_node(struct avl_node *node, uint64_t addr, uint64_t pag
   } else {
     node->addr = addr;
     node->page_count = page_count;
+    node->allocated = 0;
     return node;
   }
 
@@ -144,12 +147,12 @@ struct avl_node *_delete_node(struct avl_node *node, uint64_t addr) {
 
 // Insert node
 void avl_insert(struct memory_manager *tree, uint64_t addr, uint64_t page_count) {
-  tree->tree = *_insert_node(&tree->tree, addr, page_count);
+  tree->tree = _insert_node(tree->tree, addr, page_count);
 }
 
 // Remove a node by address
 void avl_remove(struct memory_manager *tree, uint64_t addr) {
-  tree->tree = *_delete_node(&tree->tree, addr);
+  tree->tree = _delete_node(tree->tree, addr);
 }
 
 // Iterating backwards, find a free node at least page_count pages long
@@ -160,7 +163,7 @@ struct avl_node *avl_min_size(struct avl_node *node, uint64_t page_count) {
       return r;
   }
 
-  if (node->page_count >= page_count)
+  if (node->page_count >= page_count && !node->allocated)
     return node;
 
   if (node->left)

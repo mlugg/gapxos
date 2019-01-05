@@ -1,6 +1,7 @@
 #include "system.h"
 #include <stdint.h>
 #include "../output/display.h"
+#include "../util/basic_lib.h"
 #include "mem_mgmt/vmm/mem_mgmt.h"
 #include "mem_mgmt/vmm/avl_tree.h"
 #include "mem_mgmt/pmm.h"
@@ -11,7 +12,7 @@
 struct avl_node node;
 
 struct memory_manager setup_kern_vmm() {
-  struct memory_manager mgr = {0};
+  struct memory_manager mgr = create_mgr(0xffff800000100000, 1000);
 
   uint64_t pml4t;
 
@@ -21,42 +22,51 @@ struct memory_manager setup_kern_vmm() {
   );
 
   mgr.pml4t = (void *) pml4t;
-  mgr.tree.addr = 0xffff800000100000;
-  mgr.tree.page_count = 1000;
   return mgr;
+}
+
+void test_vmm(struct memory_manager *mgr) {
+  char *str_mem = alloc_phys_page();
+  str_mem += PHYSICAL_MAP_OFFSET;
+  
+  char *test1 = malloc_pages(mgr, 8, 1, 0, 1);
+  print("Allocated 8 pages (32 KiB) of memory\n");
+  print("Addressed at ");
+  print(itoa((uint64_t) test1, str_mem, 16));
+  print("\n");
+
+  char *test2 = malloc_pages(mgr, 8, 1, 0, 1);
+  print("Allocated 8 pages (32 KiB) of memory\n");
+  print("Addressed at ");
+  print(itoa((uint64_t) test2, str_mem, 16));
+  print("\n");
+
+  char *test3 = malloc_pages(mgr, 8, 1, 0, 1);
+  print("Allocated 8 pages (32 KiB) of memory\n");
+  print("Addressed at ");
+  print(itoa((uint64_t) test3, str_mem, 16));
+  print("\n");
+
+  free_pages(mgr, (uint64_t) test2);
+  print("Freed 8 pages (32 KiB) of memory\n");
+  print("Addressed at ");
+  print(itoa((uint64_t) test2, str_mem, 16));
+  print("\n");
+
+
+  test2 = malloc_pages(mgr, 8, 1, 0, 1);
+  print("Allocated 8 pages (32 KiB) of memory\n");
+  print("Addressed at ");
+  print(itoa((uint64_t) test2, str_mem, 16));
+  print("\n");
 }
 
 // At this point, all boot info has been dealt with. Physical memory management is set up.
 void system_main(struct system_info info) {
-  print("Hi!\n");
+  print("Performing VMM test...\n");
   struct memory_manager kern_vmm = setup_kern_vmm();
+  test_vmm(&kern_vmm);
 
-  print("Hi!\n");
-  char *test = malloc_pages(&kern_vmm, 10, 1, 0, 1);
-
-  print("Hi!\n");
-  for (int i = 0; i < 10; ++i)
-    test[i] = i;
-
-  print("Hi!\n");
-  char *test2 = malloc_pages(&kern_vmm, 10, 1, 0, 1);
-
-  print("Hi!\n");
-  for (int i = 0; i < 10; ++i)
-    test2[i] = i + 64;
-
-  print("Hi!\n");
-  for (int i = 0; i < 10; ++i)
-    if (test[i] != i)
-      print("Soemthing broke\n");
-  print("Hi!\n");
-
-  for (int i = 0; i < 10; ++i)
-    if (test2[i] != i + 64)
-      print("Something broke\n");
-
-  //__asm__("hlt");
-  print("Where were you while we were getting...\n");
-  print("Hi!");
+  __asm__("hlt");
   // We should never get here
 }

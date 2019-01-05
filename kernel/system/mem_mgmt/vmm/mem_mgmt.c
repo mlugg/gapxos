@@ -5,6 +5,12 @@
 #include "mem_mgmt.h"
 #include "../pmm.h"
 
+struct memory_manager create_mgr(uint64_t addr_start, uint64_t page_count) {
+  struct memory_manager mgr = {0};
+  avl_insert(&mgr, addr_start, page_count);
+  return mgr;
+}
+
 void lock_mgr(struct memory_manager *mgr) {
   uint8_t tmp;
   do {
@@ -25,7 +31,7 @@ void unlock_mgr(struct memory_manager *mgr) {
 
 // Expects valid and locked mgr, valid page_count
 void *alloc_virt(struct memory_manager *mgr, uint64_t page_count) {
-  struct avl_node *n = avl_min_size(&mgr->tree, page_count);
+  struct avl_node *n = avl_min_size(mgr->tree, page_count);
 
   if (!n) return NULL;
 
@@ -91,17 +97,19 @@ void free_pages(struct memory_manager *mgr, uint64_t addr) {
   if (!mgr) return;
   lock_mgr(mgr);
 
-  struct avl_node *n = avl_find(&mgr->tree, addr);
+  struct avl_node *n = avl_find(mgr->tree, addr);
 
-  if (!n || n->allocated) {
+  if (!n || !n->allocated) {
     unlock_mgr(mgr);
     return;
   }
 
+  n->allocated = 0;
+
   for (uint64_t i = 0; i < n->page_count; ++i)
     free_page(mgr->pml4t, addr + i*0x1000);
 
-  struct avl_node *prev = avl_below(&mgr->tree, addr);
+  struct avl_node *prev = avl_below(mgr->tree, addr);
   if (prev && !prev->allocated) {
     uint64_t pages_old = n->page_count;
     avl_remove(mgr, addr);
@@ -109,7 +117,7 @@ void free_pages(struct memory_manager *mgr, uint64_t addr) {
     n->page_count += pages_old;
   }
 
-  struct avl_node *after = avl_find(&mgr->tree, n->addr + n->page_count * 0x1000);
+  struct avl_node *after = avl_find(mgr->tree, n->addr + n->page_count * 0x1000);
   if (after && !after->allocated) {
     n->page_count += after->page_count;
     avl_remove(mgr, after->addr);
