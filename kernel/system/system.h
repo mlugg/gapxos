@@ -1,5 +1,4 @@
-#ifndef SYSTEM_H
-#define SYSTEM_H
+#pragma once
 
 #include <stdint.h>
 
@@ -9,5 +8,3 @@ struct system_info {
 };
 
 void system_main(struct system_info info);
-
-#endif

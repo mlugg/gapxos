@@ -1,5 +1,4 @@
-#ifndef COMMON_BOOT_H
-#define COMMON_BOOT_H
+#pragma once
 
 #include <stdint.h>
 
@@ -25,5 +24,3 @@ struct mmap_entry {
 
 void get_page_table_area(void **start, void **end);
 void *check_memory_bounds(void *base, uint64_t len, uint64_t req_size, struct unsafe_range *unsafe, uint32_t unsafe_count);
-
-#endif

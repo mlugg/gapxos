@@ -1,5 +1,4 @@
-#ifndef PMM_H
-#define PMM_H
+#pragma once
 
 #include <stdint.h>
 #include "../../boot/common_boot.h"
@@ -12,5 +11,3 @@ void init_pmm(void *stack, struct mmap_entry *mmap, uint32_t entries, struct uns
 
 void *alloc_phys_page();
 void free_phys_page(void *addr);
-
-#endif
