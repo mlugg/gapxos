@@ -2,6 +2,8 @@
 #include <stddef.h>
 #include "avl_tree.h"
 #include "mem_mgmt.h"
+#include "../pmm.h"
+#include "node_alloc.h"
 
 uint16_t height(struct avl_node *node) {
   if (!node)
@@ -39,18 +41,6 @@ struct avl_node *rotate_right(struct avl_node *x) {
   x->height = height(x);
   z->height = height(z);
   return z;
-}
-
-//TODO: good things
-uint64_t free_nodez_idx;
-struct avl_node free_nodez[256];
-
-struct avl_node *create_node() {
-  return free_nodez + free_nodez_idx++;
-}
-
-void free_node(struct avl_node *node) {
-//  free_nodez_idx--;
 }
 
 struct avl_node *_insert_node(struct avl_node *node, uint64_t addr, uint64_t page_count) {
