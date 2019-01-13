@@ -1,13 +1,16 @@
 .POSIX:
 .PHONY: all clean iso test
 
-GRUB := grub-mkrescue
 GRUB := ""
 
-ifeq  (, $(shell which grub2-mkrescue))
+# Does `grub2-mkrescue` exist?
+# If not, use `grub-mkrescue`.
+#
+# If it does, use `grub2-mkconfig`.
+ifeq (,$(shell command -v grub2-mkrescue 2> /dev/null))
 	GRUB := "grub-mkrescue"
 else
-	GRUB := grub2-mkrescue
+	GRUB := "grub2-mkrescue"
 endif
 
 all:
