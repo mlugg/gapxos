@@ -5,7 +5,7 @@
 #include "../pmm.h"
 #include "node_alloc.h"
 
-uint16_t height(struct avl_node *node) {
+static uint16_t height(struct avl_node *node) {
   if (!node)
     return 0;
   
@@ -15,7 +15,7 @@ uint16_t height(struct avl_node *node) {
   return lh > rh ? lh : rh;
 }
 
-int8_t balance(struct avl_node *node) {
+static int8_t balance(struct avl_node *node) {
   if (!node)
     return 0;
   
@@ -25,7 +25,7 @@ int8_t balance(struct avl_node *node) {
   return rh - lh;
 }
 
-struct avl_node *rotate_left(struct avl_node *x) {
+static struct avl_node *rotate_left(struct avl_node *x) {
   struct avl_node *z = x->right;
   x->right = z->left;
   z->left = x;
@@ -34,7 +34,7 @@ struct avl_node *rotate_left(struct avl_node *x) {
   return z;
 }
 
-struct avl_node *rotate_right(struct avl_node *x) {
+static struct avl_node *rotate_right(struct avl_node *x) {
   struct avl_node *z = x->left;
   x->left = z->right;
   z->right = x;
@@ -43,7 +43,7 @@ struct avl_node *rotate_right(struct avl_node *x) {
   return z;
 }
 
-struct avl_node *_insert_node(struct avl_node *node, uint64_t addr, uint64_t page_count) {
+static struct avl_node *_insert_node(struct avl_node *node, uint64_t addr, uint64_t page_count) {
   if (!node) {
     node = create_node();
     node->addr = addr;
@@ -79,7 +79,7 @@ struct avl_node *_insert_node(struct avl_node *node, uint64_t addr, uint64_t pag
   return node;
 }
 
-struct avl_node *_delete_node(struct avl_node *node, uint64_t addr) {
+static struct avl_node *_delete_node(struct avl_node *node, uint64_t addr) {
   if (!node)
     return NULL;
   

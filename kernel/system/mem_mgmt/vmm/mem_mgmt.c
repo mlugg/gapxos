@@ -11,7 +11,7 @@ struct memory_manager create_mgr(uint64_t addr_start, uint64_t page_count) {
   return mgr;
 }
 
-void lock_mgr(struct memory_manager *mgr) {
+static void lock_mgr(struct memory_manager *mgr) {
   uint8_t tmp;
   do {
     __asm__ volatile(
@@ -22,7 +22,7 @@ void lock_mgr(struct memory_manager *mgr) {
   } while (tmp);
 }
 
-void unlock_mgr(struct memory_manager *mgr) {
+static void unlock_mgr(struct memory_manager *mgr) {
   __asm__ volatile(
     "movb $0, %0"
     : "=m" (mgr->lock)
@@ -30,7 +30,7 @@ void unlock_mgr(struct memory_manager *mgr) {
 }
 
 // Expects valid and locked mgr, valid page_count
-void *alloc_virt(struct memory_manager *mgr, uint64_t page_count) {
+static void *alloc_virt(struct memory_manager *mgr, uint64_t page_count) {
   struct avl_node *n = avl_min_size(mgr->tree, page_count);
 
   if (!n) return NULL;

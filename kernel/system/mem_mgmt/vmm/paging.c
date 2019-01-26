@@ -16,7 +16,7 @@
 // The lower 12 bits are all flags in page tables
 #define _MASK_REMOVE_12L (0xfffffffff000)
 
-uint64_t *get_page_table_entry(uint64_t *pml4t, uint64_t vaddr, uint64_t flags_add) {
+static uint64_t *get_page_table_entry(uint64_t *pml4t, uint64_t vaddr, uint64_t flags_add) {
   uint64_t offset = PHYSICAL_MAP_OFFSET / 8;
   pml4t += offset;
 

@@ -23,13 +23,13 @@ struct {
 #define PAGE_SIZE    (1<<7)
 #define PAGE_GLOBAL  (1<<8)
 
-void zero_page(void *page) {
+static inline void zero_page(void *page) {
   for (char *ptr = page; (uint64_t)ptr < (uint64_t)page + 4096; ++ptr)
     *ptr = 0;
 }
 
 // This is only used in init, so doesn't have to be too fast.
-void *get_low_page() {
+static void *get_low_page() {
   int lowest_idx = 0;
   for (uint64_t i = 0; i < pmm.free_index; ++i) {
     if ((uint64_t)pmm.free_pages[i] < (uint64_t)pmm.free_pages[lowest_idx])
@@ -47,7 +47,7 @@ void *get_low_page() {
 }
 
 // Goes from the state the loader leaves us in and pages all of physical memory
-void init_paging(uint64_t phys_mem_length) {
+static void init_paging(uint64_t phys_mem_length) {
   uint64_t phys_map_offset_real = PHYSICAL_MAP_OFFSET & 0xffffffffffff; // Drops the top 12 bits
   uint64_t *pml4t;
   __asm__ volatile(

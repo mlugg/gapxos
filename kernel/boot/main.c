@@ -23,7 +23,7 @@ struct mb_info {
 };
 
 
-void interpret_tag(uint32_t type, uint32_t size, void *data, struct mb_info *info) {
+static void interpret_tag(uint32_t type, uint32_t size, void *data, struct mb_info *info) {
   uint32_t *ptr = data;
   switch (type) {
     case 6:
@@ -59,7 +59,7 @@ void interpret_tag(uint32_t type, uint32_t size, void *data, struct mb_info *inf
   }
 }
 
-void interpret_multiboot(uint32_t *mb, struct mb_info *info) {
+static void interpret_multiboot(uint32_t *mb, struct mb_info *info) {
   mb += 2;
 
   while (*mb) {
