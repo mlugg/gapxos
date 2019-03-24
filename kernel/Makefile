@@ -10,7 +10,7 @@ CFLAGS := -Wall -Werror -m64 -z max-page-size=0x1000 -mno-red-zone -mno-mmx -mno
 SOURCE := $(shell ls **/*.c)
 OBJECTS := $(patsubst %.c,%.o,$(SOURCE))
 
-ASM_SOURCE := $(shell ls **/*.s)
+ASM_SOURCE := $(shell find . -type f -name '*.s')
 ASM_OBJECTS := $(patsubst %.s,%.o,$(ASM_SOURCE))
 
 all: kernel
