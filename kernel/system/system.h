@@ -8,3 +8,5 @@ struct system_info {
 };
 
 void system_main(struct system_info info);
+
+extern struct memory_manager kern_vmm;
