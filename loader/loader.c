@@ -89,8 +89,6 @@ void add_page(ptr64 virt_addr, ptr64 phys_addr, uint8_t exec) {
 
   if (!(pml4t[pml4_idx] & PAGE_PRESENT)) {
     pml4t[pml4_idx] = (uint32_t) page_free_point | PAGE_PRESENT | PAGE_RW;
-    if (exec) pml4t[pml4_idx] &= ~PAGE_NX;
-    else pml4t[pml4_idx] |= PAGE_NX;
     page_free_point = (char *)page_free_point + 0x1000;
   }
 
@@ -98,8 +96,6 @@ void add_page(ptr64 virt_addr, ptr64 phys_addr, uint8_t exec) {
 
   if (!(pdpt[pdp_idx] & PAGE_PRESENT)) {
     pdpt[pdp_idx] = (uint32_t) page_free_point | PAGE_PRESENT | PAGE_RW;
-    if (exec) pdpt[pdp_idx] &= ~PAGE_NX;
-    else pdpt[pdp_idx] |= PAGE_NX;
     page_free_point = (char *)page_free_point + 0x1000;
   }
 
@@ -107,8 +103,6 @@ void add_page(ptr64 virt_addr, ptr64 phys_addr, uint8_t exec) {
 
   if (!(pdt[pd_idx] & PAGE_PRESENT)) {
     pdt[pd_idx] = (uint32_t) page_free_point | PAGE_PRESENT | PAGE_RW;
-    if (exec) pdt[pd_idx] &= ~PAGE_NX;
-    else pdt[pd_idx] |= PAGE_NX;
     page_free_point = (char *)page_free_point + 0x1000;
   }
 
