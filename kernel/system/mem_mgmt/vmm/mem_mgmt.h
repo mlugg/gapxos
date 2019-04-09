@@ -22,4 +22,4 @@ struct memory_manager create_mgr(uint64_t addr_start, uint64_t page_count);
 
 void *malloc_pages(struct memory_manager *mgr, uint64_t page_count, uint8_t write, uint8_t exec, uint8_t kernel);
 void *map_memory(struct memory_manager *mgr, uint64_t map_addr, uint64_t page_count, uint8_t kernel);
-void free_pages(struct memory_manager *mgr, uint64_t addr);
+void free_pages(struct memory_manager *mgr, void *addr);

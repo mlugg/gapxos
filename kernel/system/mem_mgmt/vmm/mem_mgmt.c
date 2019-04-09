@@ -93,11 +93,11 @@ void *map_memory(struct memory_manager *mgr, uint64_t map_addr, uint64_t page_co
   return addr;
 }
 
-void free_pages(struct memory_manager *mgr, uint64_t addr) {
+void free_pages(struct memory_manager *mgr, void *addr) {
   if (!mgr) return;
   lock_mgr(mgr);
 
-  struct avl_node *n = avl_find(mgr->tree, addr);
+  struct avl_node *n = avl_find(mgr->tree, (uint64_t) addr);
 
   if (!n || !n->allocated) {
     unlock_mgr(mgr);
@@ -107,12 +107,12 @@ void free_pages(struct memory_manager *mgr, uint64_t addr) {
   n->allocated = 0;
 
   for (uint64_t i = 0; i < n->page_count; ++i)
-    free_page(mgr->pml4t, addr + i*0x1000);
+    free_page(mgr->pml4t, (uint64_t) addr + i*0x1000);
 
-  struct avl_node *prev = avl_below(mgr->tree, addr);
+  struct avl_node *prev = avl_below(mgr->tree, (uint64_t) addr);
   if (prev && !prev->allocated) {
     uint64_t pages_old = n->page_count;
-    avl_remove(mgr, addr);
+    avl_remove(mgr, (uint64_t) addr);
     n = prev;
     n->page_count += pages_old;
   }

@@ -107,6 +107,7 @@ static struct avl_node *_delete_node(struct avl_node *node, uint64_t addr) {
       }
       node->addr = ptr->addr;
       node->page_count = ptr->page_count;
+      node->allocated = ptr->allocated;
       if (ptr->right && !parent)
         node->right = ptr->right;
       else if (ptr->right)

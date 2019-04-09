@@ -52,21 +52,40 @@ static uint64_t *get_page_table_entry(uint64_t *pml4t, uint64_t vaddr, uint64_t 
 // Expects for nothing else to be writing to the page tables to avoid race conditions
 // If physical page is PRESENT and USABLE, it is first freed.
 void set_page(uint64_t *pml4t, uint64_t vaddr, uint64_t paddr, struct page_flags flags) {
+  __asm__ volatile(
+      "invlpg (%0)"
+      :
+      : "r" (vaddr)
+      : "memory"
+  );
   uint64_t table_flags = 0;
 
   table_flags |= flags.present ? _PAGE_PRESENT : 0;
   table_flags |= flags.write ? _PAGE_RW : 0;
-  table_flags |= flags.exec ? 0 : _PAGE_NX;
   table_flags |= flags.kernel ? _PAGE_GLOBAL : _PAGE_USER;
   table_flags |= flags.usable ? _PAGE_CUSTOM_USABLE : 0;
 
-  vaddr &= _MASK_REMOVE_16U;
   paddr &= _MASK_REMOVE_12L & ~(_PAGE_NX); // The NX bit is in the upper place
 
-  uint64_t *page = get_page_table_entry(pml4t, vaddr, table_flags);
-  *page = paddr | table_flags;
+  uint64_t *page = get_page_table_entry(pml4t, vaddr & _MASK_REMOVE_16U, table_flags);
+  *page = paddr | table_flags | (flags.exec ? 0 : _PAGE_NX);
 
   // TODO: Invalidate page
+/*  __asm__ volatile(
+    "movq %%cr3, %%rax  \n\t"
+    "movq %%rax, %%cr3"
+    ::: "a"
+  );*/
+
+  __asm__ volatile(
+      "invlpg (%0)"
+      :
+      : "r" (vaddr)
+      : "memory"
+  );
+
+  int x =5;
+  x += 1;
 }
 
 void free_page(uint64_t *pml4t, uint64_t vaddr) {

@@ -78,8 +78,8 @@ static inline int find_0_bit(uint64_t *page) {
 static inline void set_header_bit(void *page, int idx, uint8_t val) {
   uint64_t *header = PAGE_HEADER(page);
 
-  int byte = idx / 8;
-  int bit = idx % 8;
+  int byte = idx / 64;
+  int bit = idx % 64;
 
   if (val) header[byte] |= 1 << bit;
   else header[byte] &= ~(1 << bit);
