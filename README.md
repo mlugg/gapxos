@@ -48,14 +48,14 @@ location of reserved areas of memory which should not be marked as
 available: specifically, the stack, and the kernel code itself. Firstly,
 this function recreates the GDT; it is essentially identical to the one
 created by the loader, but must be recreated as the existing one could
-be overwritten later.  first job of the kernel is to parse the Multiboot
+be overwritten later. The next job of the kernel is to parse the Multiboot
 structure and get any useful information from it. Every element of the
 structure is traversed, and 4 types of tags are actually read: the
 memory map, any present framebuffers, and the RSDP for either version of
 ACPI. In future, this will likely also read a second boot module to use
-as the initramfs.  After reading the entire multiboot structure and e.g.
+as the initramfs. After reading the entire multiboot structure and e.g.
 validating ACPI checksums, the system begins to initialize the physical
-memory manager.  The PMM is implemented very simply as a stack of free
+memory manager. The PMM is implemented very simply as a stack of free
 4k memory pages, so the system first reads the memory map to identify
 how much memory will be needed to store the stack itself. Once this is
 calculated, it traverses the map again to find a range of memory which
