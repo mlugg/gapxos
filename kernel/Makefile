@@ -1,4 +1,3 @@
-SHELL := /bin/bash -O globstar
 .POSIX:
 .PHONY: all clean
 
@@ -7,7 +6,7 @@ LDFLAGS := -m64 -ffreestanding -T $(LINKER) -nostdlib -lgcc -pie
 
 CFLAGS := -Wall -Werror -m64 -z max-page-size=0x1000 -mno-red-zone -mno-mmx -mno-sse2 -c -g -fno-stack-protector -fPIE -fPIC
 
-SOURCE := $(shell ls **/*.c)
+SOURCE := $(shell find . -type f -name '*.c')
 OBJECTS := $(patsubst %.c,%.o,$(SOURCE))
 
 ASM_SOURCE := $(shell find . -type f -name '*.s')

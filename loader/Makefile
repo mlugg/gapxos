@@ -6,10 +6,10 @@ LDFLAGS := -m32 -ffreestanding -T $(LINKER) -nostdlib -lgcc -no-pie -fno-pic -O0
 
 CFLAGS := -Wall -Werror -m32 -no-pie -fno-pic -c -g -O0 -fno-stack-protector
 
-SOURCE := $(wildcard *.c)
+SOURCE := $(shell find . -type f -name '*.c')
 OBJECTS := $(patsubst %.c,%.o,$(SOURCE))
 
-ASM_SOURCE := $(wildcard *.s)
+ASM_SOURCE := $(shell find . -type f -name '*.s')
 ASM_OBJECTS := $(patsubst %.s,%.o,$(ASM_SOURCE))
 
 all: loader
