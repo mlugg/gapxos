@@ -4,6 +4,8 @@
 #include "common_boot.h"
 #include "../system/system.h"
 
+extern void load_initial_gdt(void);
+
 struct mb_info {
   struct {
     uint32_t count;
@@ -75,6 +77,8 @@ static void interpret_multiboot(uint32_t *mb, struct mb_info *info) {
 }
 
 void kernel_main(void *mb_structure, void *krn_start, void *krn_end, void *stack, uint64_t stack_size) {
+  load_initial_gdt(); // The currently loaded GDT will probably be overwritten later; load another, very similar one.
+
   struct mb_info info = {0};
 
   interpret_multiboot(mb_structure, &info);
