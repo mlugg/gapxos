@@ -23,6 +23,8 @@ void set_color(uint8_t fg, uint8_t bg) {
 }
 
 void print(char *string) {
+  if (!text_info.text) return;
+
   uint16_t *text = text_info.text;
   uint32_t width = text_info.width;
   uint32_t height = text_info.height;

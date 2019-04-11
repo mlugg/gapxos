@@ -83,18 +83,19 @@ void kernel_main(void *mb_structure, void *krn_start, void *krn_end, void *stack
 
   interpret_multiboot(mb_structure, &info);
 
-  if (!info.text.ptr)
-    __asm__ volatile("hlt"); // Temporary: We need output atm
-
   init_display(info.text.ptr, info.text.width, info.text.height);
 
   set_color(0xF, 0x1);
 
-  if (!info.mmap.count)
-    print("Um, okay, so I don't have a memory map.\n");
+  if (!info.mmap.count) {
+    print("FATAL: Memory map not provided by bootloader. This is a bootloader bug!\n");
+    __asm__ volatile("hlt");
+  }
 
-  if (!info.acpi.version)
-    print("Oi, APM is bollocks, get yoself some ACPI\n");
+  if (!info.acpi.version) {
+    print("FATAL: ACPI not present on system\n");
+    __asm__ volatile("hlt");
+  }
 
   if (info.acpi.rsdp->Signature[0] != 'R' ||
       info.acpi.rsdp->Signature[1] != 'S' ||
@@ -104,7 +105,7 @@ void kernel_main(void *mb_structure, void *krn_start, void *krn_end, void *stack
       info.acpi.rsdp->Signature[5] != 'T' ||
       info.acpi.rsdp->Signature[6] != 'R' ||
       info.acpi.rsdp->Signature[7] != ' ') {
-    print("Incorrect ACPI signature!\n");
+    print("FATAL: Incorrect ACPI signature\n");
     __asm__ volatile("hlt");
   }
 
@@ -114,7 +115,7 @@ void kernel_main(void *mb_structure, void *krn_start, void *krn_end, void *stack
     acpi_checksum += acpi_check_ptr[i];
 
   if ((uint8_t)acpi_checksum != 0) {
-    print("Incorrect ACPI checksum!\n");
+    print("FATAL: Incorrect ACPI checksum\n");
     __asm__ volatile("hlt");
   }
 
