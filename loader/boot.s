@@ -38,11 +38,41 @@ page_structs:
 .code32
 .section .text
 
+gdt32:
+gdt32_null:      #   Null descriptor
+.word 0xffff     # Limit (15:0)
+.word 0          # Base (15:0)
+.byte 0          # Base (23:16)
+.byte 0          # Access
+.byte 1          # Granularity
+.byte 0          # Base (31:24)
+gdt32_data:      #   Data descriptor
+.word 0xffff     # Limit (15:0)
+.word 0          # Base (15:0)
+.byte 0          # Base (23:16)
+.byte 0b10010010 # Access
+.byte 0xC0       # Granularity
+.byte 0          # Base (31:24)
+gdt32_code:      #   Code descriptor
+.word 0xffff     # Limit (15:0)
+.word 0          # Base (15:0)
+.byte 0          # Base (23:16)
+.byte 0b10011010 # Access
+.byte 0xC0       # Granularity
+.byte 0          # Base (31:24)
+gdt32_end:
+
+gdt32_pointer:
+.word gdt32_end - gdt32  # Limit (length)
+.long gdt32              # Base
+
+
 .global start
 .type start, @function
 start: # Entry point
 
 cli                # Fuck interrupts
+lgdt (gdt32_pointer)
 mov $stack_top, %esp # Set up a stack
 mov $stack_top, %ebp
 
@@ -52,23 +82,6 @@ push $stack_bottom
 push $page_structs
 push %ebx   # Pointer to multiboot info structure
 call lmain # Loader
-
-
-gdt32_asm:
-.word 0 # Limit
-.long 0 # Base
-
-
-.global setup_gdt
-.type setup_gdt, @function
-setup_gdt:
-
-mov 4(%esp), %eax # Address of table
-mov %eax, (gdt32_asm + 2)
-mov 8(%esp), %eax # Size
-mov %eax, (gdt32_asm)
-lgdt (gdt32_asm)
-ret
 
 
 # Called from C. Takes 1 argument, pointer to paging structures
@@ -156,7 +169,7 @@ gdt64_data:      #   Data descriptor
 .byte 0b10010010 # Access
 .byte 0          # Granularity
 .byte 0          # Base (31:24)
-gdt64_code:      #   Code descriptor - must come last for SYSCALLs to load CS properly
+gdt64_code:      #   Code descriptor
 .word 0xffff     # Limit (15:0)
 .word 0          # Base (15:0)
 .byte 0          # Base (24:16)

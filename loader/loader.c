@@ -15,12 +15,6 @@ extern void setup_gdt(void *, uint32_t);
 
 uint64_t *pml4t;
 
-struct GDT {
-  uint32_t base;
-  uint32_t limit;
-  uint32_t type;
-};
-
 void zero_memory(void *start, uint32_t len) {
   while (len--)
     *(((*(char **)&start))++) = 0;
@@ -202,51 +196,9 @@ void init_page_structure(void *start_mem) {
   pdt[3] = 0x600000 | PAGE_PRESENT | PAGE_RW | PAGE_SIZE; // Address is 6 MiB
 }
 
-void encodeGdtEntry(uint8_t *target, struct GDT source)
-{
-  // Check the limit to make sure that it can be encoded
-  if ((source.limit > 65536) && ((source.limit & 0xFFF) != 0xFFF)) {
-    return; // Error
-  }
-  if (source.limit > 65536) {
-    // Adjust granularity if required
-    source.limit = source.limit >> 12;
-    target[6] = 0xC0;
-  } else {
-    target[6] = 0x40;
-  }
- 
-  // Encode the limit
-  target[0] = source.limit & 0xFF;
-  target[1] = (source.limit >> 8) & 0xFF;
-  target[6] |= (source.limit >> 16) & 0xF;
- 
-  // Encode the base 
-  target[2] = source.base & 0xFF;
-  target[3] = (source.base >> 8) & 0xFF;
-  target[4] = (source.base >> 16) & 0xFF;
-  target[7] = (source.base >> 24) & 0xFF;
- 
-  // And... Type
-  target[5] = source.type;
-}
-
 void lmain(void *mb_structure, void *page_structure_mem, void *stack, uint32_t stack_size) {
   if (!mb_structure)
     __asm__("hlt");
-  // TODO: Hardcode GDT
-  struct GDT gdt32[3];
-  gdt32[0] = (struct GDT) {.base=0, .limit=0, .type=0};
-  gdt32[1] = (struct GDT) {.base=0, .limit=0x03ffffff, .type=0x9A};
-  gdt32[2] = (struct GDT) {.base=0, .limit=0x03ffffff, .type=0x92};
-
-  uint8_t gdt[24];
-
-  encodeGdtEntry(gdt, gdt32[0]);
-  encodeGdtEntry(gdt + 8, gdt32[1]);
-  encodeGdtEntry(gdt + 16, gdt32[2]);
-
-  setup_gdt(gdt, 24);
 
   init_page_structure(page_structure_mem);
 
