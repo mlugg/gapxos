@@ -70,88 +70,85 @@ gdt32_pointer:
 .global start
 .type start, @function
 start: # Entry point
+  cli                # Fuck interrupts
+  lgdt (gdt32_pointer)
+  mov $stack_top, %esp # Set up a stack
+  mov $stack_top, %ebp
 
-cli                # Fuck interrupts
-lgdt (gdt32_pointer)
-mov $stack_top, %esp # Set up a stack
-mov $stack_top, %ebp
-
-# Push args in reverse order
-push $65536 # Stack size
-push $stack_bottom
-push $page_structs
-push %ebx   # Pointer to multiboot info structure
-call lmain # Loader
+  # Push args in reverse order
+  push $65536 # Stack size
+  push $stack_bottom
+  push $page_structs
+  push %ebx   # Pointer to multiboot info structure
+  call lmain # Loader
 
 
 # Called from C. Takes 1 argument, pointer to paging structures
 .global setup_longmode
 .type setup_longmode, @function
 setup_longmode: # Sets up long mode
+  push %ebx
+  pushfl
+  pushfl
+  pop %eax
+  xorl $(1<<21), %eax # Toggles bit 21
+  push %eax
+  popfl
+  pushfl
+  pop %eax
+  mov (%esp), %ebx
+  popfl
+  cmp %eax, %ebx
+  je err # CPUID not supported
+  pop %ebx
 
-push %ebx
-pushfl
-pushfl
-pop %eax
-xorl $(1<<21), %eax # Toggles bit 21
-push %eax
-popfl
-pushfl
-pop %eax
-mov (%esp), %ebx
-popfl
-cmp %eax, %ebx
-je err # CPUID not supported
-pop %ebx
+  mov $0x80000000, %eax
+  cpuid
+  cmp $0x80000001, %eax
+  jb err # Extended CPUID not supported
 
-mov $0x80000000, %eax
-cpuid
-cmp $0x80000001, %eax
-jb err # Extended CPUID not supported
+  mov $0x80000001, %eax
+  cpuid
+  test $(1<<29), %edx # Tests bit 29
+  jz err # Long mode not supported
+  # Long mode supported!
 
-mov $0x80000001, %eax
-cpuid
-test $(1<<29), %edx # Tests bit 29
-jz err # Long mode not supported
-# Long mode supported!
+  # Disable paging
+  mov %cr0, %eax
+  and $(1<<31 - 1), %eax # Wipe bit 31
+  mov %eax, %cr0
 
-# Disable paging
-mov %cr0, %eax
-and $(1<<31 - 1), %eax # Wipe bit 31
-mov %eax, %cr0
+  # Set up page tables
+  mov 4(%esp), %eax # Set destination register to 0x1000
+  mov %eax, %cr3 # Set page location to dest. register
 
-# Set up page tables
-mov 4(%esp), %eax # Set destination register to 0x1000
-mov %eax, %cr3 # Set page location to dest. register
+  # Enable PAE
+  push %edi
+  mov %cr4, %edi
+  or $(1<<5), %edi # Set bit 5
+  mov %edi, %cr4
+  pop %edi
 
-# Enable PAE
-push %edi
-mov %cr4, %edi
-or $(1<<5), %edi # Set bit 5
-mov %edi, %cr4
-pop %edi
+  # Switch to compatibility mode (IA32e)
+  mov $0xC0000080, %ecx
+  rdmsr
+  or $(1<<8), %eax
+  or $(1<<11), %eax
+  wrmsr
 
-# Switch to compatibility mode (IA32e)
-mov $0xC0000080, %ecx
-rdmsr
-or $(1<<8), %eax
-or $(1<<11), %eax
-wrmsr
+  # Enable paging again
+  mov %cr0, %eax
+  or $(1<<31), %eax
+  or $1, %eax
+  mov %eax, %cr0
 
-# Enable paging again
-mov %cr0, %eax
-or $(1<<31), %eax
-or $1, %eax
-mov %eax, %cr0
+  # All done!
+  ret
 
-# All done!
-ret
-
-
-# When we get an error trying to switch to long mode
-err:
-# Maybe output an error message?
-hlt
+  # When we get an error trying to switch to long mode
+  err:
+  # Maybe output an error message?
+  hlt
 
 
 gdt64:
