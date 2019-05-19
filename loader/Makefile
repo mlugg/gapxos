@@ -16,7 +16,7 @@ all: loader
 
 clean:
 	rm -f loader
-	rm -f *.o
+	rm -f ${OBJECTS} ${ASM_OBJECTS}
 	rm -f loader.sym
 
 loader: $(OBJECTS) $(ASM_OBJECTS)

@@ -16,8 +16,7 @@ all: kernel
 
 clean:
 	rm -f kernel
-	rm -f *.o
-	rm -f **/*.o
+	rm -f ${OBJECTS} ${ASM_OBJECTS}
 	rm -f kernel.sym
 
 kernel: $(OBJECTS) $(ASM_OBJECTS)
