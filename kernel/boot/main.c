@@ -1,5 +1,5 @@
 #include <stdint.h>
-#include "../output/display.h"
+#include "../display.h"
 #include "../system/mem_mgmt/pmm.h"
 #include "common_boot.h"
 #include "../system/system.h"
@@ -85,7 +85,7 @@ void kernel_main(void *mb_structure, void *krn_start, void *krn_end, void *stack
 
   init_display(info.text.ptr, info.text.width, info.text.height);
 
-  set_color(0xF, 0x1);
+  kdisp_color(WHITE, BLUE);
 
   if (!info.mmap.count) {
     print("FATAL: Memory map not provided by bootloader. This is a bootloader bug!\n");
