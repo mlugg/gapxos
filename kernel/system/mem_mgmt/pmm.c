@@ -102,6 +102,10 @@ uint64_t get_stack_size(struct mmap_entry *mmap, uint32_t entries) {
   return size;
 }
 
+// We need a single page of low memory (<1MiB) to be reserved.
+// This is where AP init code will go. It will later be freed.
+uint32_t pmm_ap_low_page;
+
 // TODO: make this less of a fuckin mess
 // - What, this function?
 // No, this whole project!
@@ -131,8 +135,13 @@ void init_pmm(void *stack, struct mmap_entry *mmap, uint32_t entries, struct uns
           }
         }
 
-        if (is_free)
-          pmm.free_pages[pmm.free_index++] = base;
+        if (is_free) {
+          if (!pmm_ap_low_page && (uint64_t)base < 1048576L) {
+            pmm_ap_low_page = (uint64_t)base;
+          } else {
+            pmm.free_pages[pmm.free_index++] = base;
+          }
+        }
       }
     } else {
       struct physical_other_range range = {0};

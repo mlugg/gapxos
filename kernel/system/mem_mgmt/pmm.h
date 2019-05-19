@@ -11,3 +11,5 @@ void init_pmm(void *stack, struct mmap_entry *mmap, uint32_t entries, struct uns
 
 void *alloc_phys_page();
 void free_phys_page(void *addr);
+
+extern uint32_t pmm_ap_low_page;
