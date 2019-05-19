@@ -32,6 +32,6 @@ iso: all
 	rm -rf ./iso
 
 test: iso
-	qemu-system-x86_64 -boot d -cdrom os.iso -m 64 -s -d guest_errors &
+	qemu-system-x86_64 -boot d -cdrom os.iso -m 64 -s -d guest_errors -smp 2 &
 	sleep 2s
 	gdb -x ./dbg/gdb_start
