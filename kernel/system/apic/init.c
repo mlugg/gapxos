@@ -1,20 +1,22 @@
+#include <stdint.h>
+#include "../mem_mgmt/pmm.h"
+
 // Returns 1 if the system supports APIC, 0 otherwise
-uint8_t has_apic() {
-  uint8_t val;
+uint8_t has_apic(void) {
+  uint32_t val;
 
   __asm__ volatile(
-      "movq 0x01, %%rax    \n\t"
-      "and 0x200, %%rdx    \n\t"
-      "movq %%rdx, %0"
-      : "=r" (val)
+      "movl $0x01, %%eax    \n\t"
+      "cpuid               \n\t"
+      : "=d" (val)
       :
-      : "rax", "rdx"
+      : "eax", "ebx", "ecx"
   );
 
-  return !!val;
+  return !!(val & 0x200);
 }
 
-inline void outb(uint16_t port, uint8_t value) {
+static inline void outb(uint16_t port, uint8_t value) {
   __asm__ volatile(
       "outb %0, %1"
       :
@@ -28,7 +30,7 @@ inline void outb(uint16_t port, uint8_t value) {
 #define PIC2_DAT 0xA1
 
 // Disables the classic 8259 PIC
-void disable_pic() {
+void disable_pic(void) {
   // Despite the fact that the IRQs will be masked, it is still
   // possible for spurious IRQs to be received on IRQ 7 and 15. For this
   // reason, we still need to remap the IRQs so we don't confuse them
@@ -55,58 +57,22 @@ void disable_pic() {
 
 static inline void write_apic_reg(uint16_t reg, uint32_t val) {
   // APIC register map physical origin = 0xFEE00000
-  uint32_t *reg = 0xFEE00000 + reg + PHYSICAL_MAP_OFFSET;
-  *reg = val;
+  uint32_t *vreg = (uint32_t *)(0xFEE00000 + reg + PHYSICAL_MAP_OFFSET);
+  *vreg = val;
 }
 
 static inline uint32_t read_apic_reg(uint16_t reg) {
   // APIC register map physical origin = 0xFEE00000
-  uint32_t *reg = 0xFEE00000 + reg + PHYSICAL_MAP_OFFSET;
-  return *reg;
+  uint32_t *vreg = (uint32_t *)(0xFEE00000 + reg + PHYSICAL_MAP_OFFSET);
+  return *vreg;
 }
 
 // Enables the APIC
-void enable_apic() {
+void enable_apic(void) {
   write_apic_reg(0xF0, 0x1FF); // Enable APIC and map spurious IRQs to interrupt 255
 }
 
 // Allows the CPU to accept interrupts
-void enable_interrupts() {
+void enable_interrupts(void) {
   __asm__ volatile("sti");
 }
-
-struct idt_entry {
-  uint16_t offset_1;
-  uint16_t selector;
-  uint8_t ist;
-  uint8_t type_attr;
-  uint16_t offset_2;
-  uint32_t offset_3;
-  uint32_t zero;
-};
-
-extern void kb_irq();
-extern void load_idt();
-
-struct idt_entry idt[286];
-
-void init_idt() {
-  uint64_t offset = (uint64_t) kb_irq;
-  idt[32].offset_1 = kb_irq & 0xffff;
-  idt[32].offset_2 = (kb_irq >> 16) & 0xffff;
-  idt[32].offset_3 = kb_irq >> 32;
-  idt[32].selector = ; // TODO
-  idt[32].ist = 0;
-  idt[32].type_attr = 0x8E;
-  idt[32].zero = 0;
-
-  uint64_t idt_ptr[2];
-
-  idt_ptr[0] = (256 * sizeof idt[0]) + (((uint64_t) idt & 0xffff) << 16);
-  idt_ptr[1] = ((uint64_t) idt) >> 16;
-
-  load_idt(idt_ptr);
-
-  load_idt(idt_ptr);
-}
-
