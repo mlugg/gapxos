@@ -1,11 +1,14 @@
 #include "system.h"
 #include <stdint.h>
-#include "../output/display.h"
-#include "../util/basic_lib.h"
+#include "../display.h"
 #include "mem_mgmt/vmm/mem_mgmt.h"
 #include "mem_mgmt/vmm/avl_tree.h"
 #include "mem_mgmt/pmm.h"
 #include "acpi/acpi.h"
+
+#include "apic/madt.h"
+#include "apic/processors.h"
+#include "apic/init.h"
 
 struct memory_manager kern_vmm;
 
@@ -29,10 +32,19 @@ void system_main(struct system_info info) {
   kern_vmm = setup_kern_vmm();
 
   init_acpi(info.acpi, info.acpi_version == 2);
-  if (get_table("FACP")) print("Found FADT!\n"); else print("No FADT!\n");
-  if (get_table("SSDT")) print("Found SSDT!\n"); else print("No SSDT!\n");
-  if (get_table("APIC")) print("Found MADT!\n"); else print("No MADT!\n");
 
+  print("Done stuff\n");
+
+  void *madt = get_table("APIC");
+  
+  parse_madt(madt);
+
+  disable_pic();
+  enable_apic();
+
+  init_ap_payload();
+  attempt_x2apic_enable();
+  start_cpu(1);
 
   __asm__("hlt");
   // We should never get here
