@@ -28,6 +28,8 @@ unsigned char ap_init_payload[] = {
   0x66, 0x89, 0xf0,                     //     movw %si, %ax                        # The higher bits of %rsi might not be empty - clear it
   0x48, 0x31, 0xf6,                     //     xorq %rsi, %rsi
   0x66, 0x89, 0xc6,                     //     movw %ax, %si                        # Move the kernel data structure address back into %rsi
+  0x48, 0x8b, 0x66, 0x17,               //     movq 0x17(%rsi), %rsp                # Put the stack address in %rsp
+  0x48, 0x89, 0xe5,                     //     movq %rsp, %rbp                      # Copy the stack address into %rbp
   0x48, 0x8b, 0x46, 0x0e,               //     movq 0xe(%rsi), %rax                 # Get the kernel address in %rax
   0xff, 0xe0,                           //     jmpq *%rax                           # Jump to the kernel
 };

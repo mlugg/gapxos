@@ -3,6 +3,8 @@
 #include "../mem_mgmt/pmm.h"
 #include "../../util/memcpy.h"
 #include "../../display.h"
+#include "../mem_mgmt/vmm/mem_mgmt.h"
+#include "../system.h"
 
 static struct {
   struct lapic *lapic;
@@ -28,9 +30,13 @@ struct ap_data {
   uint16_t code_selector;
   uint64_t krn_entry;
   uint8_t has_started;
+  uint64_t stack;
 } __attribute__((packed));
 
-extern void ap_entry_point(void);
+void ap_entry_point(void) {
+  print("Hello from processor #2!\n");
+  __asm__("hlt");
+}
 
 void init_ap_payload(void) {
   uint64_t payload_location = pmm_ap_low_page;
@@ -183,6 +189,11 @@ uint8_t pit_timeout_reached(void) {
   return inb(0x40) & (1<<7);
 }
 
+static void cpu_started(struct ap_data volatile *data) {
+  data->stack = (uint64_t) malloc_pages(&kern_vmm, 4, 1, 0, 1);
+  data->has_started = 0;
+}
+
 uint8_t start_cpu(uint32_t lapic_id) {
   struct ap_data volatile *data = (struct ap_data volatile *)(pmm_ap_low_page + ap_init_payload_len + PHYSICAL_MAP_OFFSET);
   uint8_t page_number = pmm_ap_low_page / 4096;
@@ -197,7 +208,7 @@ uint8_t start_cpu(uint32_t lapic_id) {
   pit_set_timeout(1); // Poll for AP to start with timeout of 1ms
   while (!pit_timeout_reached()) {
     if (data->has_started) {
-      data->has_started = 0;
+      cpu_started(data);
       return 0;
     }
   }
@@ -207,12 +218,10 @@ uint8_t start_cpu(uint32_t lapic_id) {
   pit_set_timeout(1000); // Poll for AP to start with timeout of 10ms
   while (!pit_timeout_reached()) {
     if (data->has_started) {
-      data->has_started = 0;
+      cpu_started(data);
       return 0;
     }
   }
-
-  print("NOTE: Failed to init AP");
 
   return 1;
 }
