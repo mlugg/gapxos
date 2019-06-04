@@ -30,11 +30,11 @@ void system_main(struct system_info info) {
   print("Initializing kernel virtual memory...\n");
   kern_vmm = setup_kern_vmm();
 
-  init_acpi(info.acpi, info.acpi_version == 2);
+  acpi_init(info.acpi, info.acpi_version == 2);
 
   print("Done stuff\n");
 
-  void *madt = get_table("APIC");
+  void *madt = acpi_get_table("APIC");
   
   apic_parse_madt(madt);
 

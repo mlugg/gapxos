@@ -23,5 +23,5 @@ struct acpi_gas {
   uint64_t addr;
 };
 
-void init_acpi(void *p_rsdt, bool p_is_xsdt);
-struct acpi_sdt_hdr *get_table(char *signature);
+void acpi_init(void *p_rsdt, bool p_is_xsdt);
+struct acpi_sdt_hdr *acpi_get_table(char *signature);
