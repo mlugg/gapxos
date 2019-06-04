@@ -6,9 +6,8 @@
 #include "mem_mgmt/pmm.h"
 #include "acpi/acpi.h"
 
-#include "apic/madt.h"
-#include "apic/processors.h"
-#include "apic/init.h"
+#include "apic/apic.h"
+#include "apic/cpu.h"
 
 struct memory_manager kern_vmm;
 
@@ -37,14 +36,13 @@ void system_main(struct system_info info) {
 
   void *madt = get_table("APIC");
   
-  parse_madt(madt);
+  apic_parse_madt(madt);
 
-  disable_pic();
-  enable_apic();
+  apic_enable();
 
-  init_ap_payload();
-  attempt_x2apic_enable();
-  start_cpu(1);
+  cpu_init_ap_payload();
+  apic_enable_x2apic();
+  cpu_start(1);
 
   __asm__("hlt");
   // We should never get here
