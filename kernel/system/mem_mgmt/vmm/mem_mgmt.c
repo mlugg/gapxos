@@ -65,7 +65,7 @@ void *malloc_pages(struct memory_manager *mgr, uint64_t page_count, uint8_t writ
   flags.present = 1;
 
   for (uint64_t i = 0; i < page_count; ++i)
-    set_page(mgr->pml4t, ((uint64_t) addr) + i*0x1000, (uint64_t) alloc_phys_page(), flags);
+    set_page(mgr->pml4t, ((uint64_t) addr) + i*0x1000, (uint64_t) pmm_alloc_page(), flags);
 
   unlock_mgr(mgr);
 

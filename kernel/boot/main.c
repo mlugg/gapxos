@@ -76,7 +76,7 @@ static void interpret_multiboot(uint32_t *mb, struct mb_info *info) {
   }
 }
 
-void kernel_main(void *mb_structure, void *krn_start, void *krn_end, void *stack, uint64_t stack_size) {
+void kernel_main(void *mb_structure, uint64_t krn_start, uint64_t krn_end, uint64_t stack, uint64_t stack_size) {
   load_initial_gdt(); // The currently loaded GDT will probably be overwritten later; load another, very similar one.
 
   struct mb_info info = {0};
@@ -125,20 +125,20 @@ void kernel_main(void *mb_structure, void *krn_start, void *krn_end, void *stack
 
   uint64_t required = get_stack_size(info.mmap.map, info.mmap.count);
 
-  void *page_start, *page_end;
+  uint64_t page_start, page_end;
   get_page_table_area(&page_start, &page_end);
 
-  struct unsafe_range unsafe[5];
-  unsafe[0] = (struct unsafe_range) {.start = krn_start, .end = krn_end};
-  unsafe[1] = (struct unsafe_range) {.start = page_start, .end = page_end};
-  unsafe[2] = (struct unsafe_range) {.start = info.mmap.map, .end = info.mmap.map + info.mmap.count};
-  unsafe[3] = (struct unsafe_range) {.start = stack, .end = (char *)stack + stack_size};
+  struct memory_range unsafe[5];
+  unsafe[0] = (struct memory_range) {.start = krn_start, .end = krn_end};
+  unsafe[1] = (struct memory_range) {.start = page_start, .end = page_end};
+  unsafe[2] = (struct memory_range) {.start = (uint64_t)info.mmap.map, .end = (uint64_t)(info.mmap.map + info.mmap.count)};
+  unsafe[3] = (struct memory_range) {.start = stack, .end = stack + stack_size};
 
   void *safe = 0;
 
   for (int i = 0; i < info.mmap.count; ++i) {
     if (info.mmap.map[i].type == 1) {
-      void *base = info.mmap.map[i].base_addr;
+      void *base = (void *)info.mmap.map[i].base_addr;
       uint64_t size = info.mmap.map[i].length;
 
       safe = check_memory_bounds(base, size, required, unsafe, 4);
@@ -154,9 +154,9 @@ void kernel_main(void *mb_structure, void *krn_start, void *krn_end, void *stack
 
   // safe now contains the address of `required` bytes of contiguous physical memory
 
-  unsafe[4] = (struct unsafe_range) {.start = safe, .end = (char *)safe + required};
+  unsafe[4] = (struct memory_range) {.start = (uint64_t)safe, .end = (uint64_t)safe + required};
 
-  init_pmm(safe, info.mmap.map, info.mmap.count, unsafe, 5);
+  pmm_init(safe, info.mmap.map, info.mmap.count, unsafe, 5);
 
   struct system_info sys_info = {0};
   sys_info.acpi = acpi_rsdt;

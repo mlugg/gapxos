@@ -39,7 +39,7 @@ static inline void *memset(void *p, int c, size_t n) {
 
 // Initialize a page for storing AVL nodes
 static inline void *init_avl_page(void *prev) {
-  char *page = alloc_phys_page();
+  char *page = (char *)pmm_alloc_page();
   page += PHYSICAL_MAP_OFFSET;
 
   // Set the pointers at the start of the page
@@ -136,7 +136,7 @@ void free_node(struct avl_node *node) {
 
   if (node_list_head == page) {
     node_list_head = PAGE_POINTERS(page)[1];
-    free_phys_page(page);
+    pmm_free_page((uint64_t)page);
     if (node_list_head) {
       PAGE_POINTERS(node_list_head)[0] = NULL;
     }
@@ -148,6 +148,6 @@ void free_node(struct avl_node *node) {
 
   PAGE_POINTERS(prev)[1] = next;
   PAGE_POINTERS(next)[0] = prev;
-  free_phys_page(page);
+  pmm_free_page((uint64_t)page);
 }
 

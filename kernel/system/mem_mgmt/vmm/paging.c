@@ -23,7 +23,7 @@ static uint64_t *get_page_table_entry(uint64_t *pml4t, uint64_t vaddr, uint64_t 
   int i = vaddr / 0x8000000000;
   vaddr %= 0x8000000000;
   if (!(pml4t[i] & _PAGE_PRESENT))
-    pml4t[i] = (uint64_t) alloc_phys_page() | _PAGE_PRESENT;
+    pml4t[i] = (uint64_t) pmm_alloc_page() | _PAGE_PRESENT;
   pml4t[i] |= flags_add;
   uint64_t *pdpt = (void *)(pml4t[i] & _MASK_REMOVE_12L);
   pdpt += offset;
@@ -31,7 +31,7 @@ static uint64_t *get_page_table_entry(uint64_t *pml4t, uint64_t vaddr, uint64_t 
   i = vaddr / 0x40000000;
   vaddr %= 0x40000000;
   if (!(pdpt[i] & _PAGE_PRESENT))
-    pdpt[i] = (uint64_t) alloc_phys_page() | _PAGE_PRESENT;
+    pdpt[i] = (uint64_t) pmm_alloc_page() | _PAGE_PRESENT;
   pdpt[i] |= flags_add;
   uint64_t *pdt = (void *)(pdpt[i] & _MASK_REMOVE_12L);
   pdt += offset;
@@ -39,7 +39,7 @@ static uint64_t *get_page_table_entry(uint64_t *pml4t, uint64_t vaddr, uint64_t 
   i = vaddr / 0x200000;
   vaddr %= 0x200000;
   if (!(pdt[i] & _PAGE_PRESENT))
-    pdt[i] = (uint64_t) alloc_phys_page() | _PAGE_PRESENT;
+    pdt[i] = (uint64_t) pmm_alloc_page() | _PAGE_PRESENT;
   pdt[i] |= flags_add;
   uint64_t *pt = (void *)(pdt[i] & _MASK_REMOVE_12L);
   pt += offset;
@@ -80,7 +80,7 @@ void free_page(uint64_t *pml4t, uint64_t vaddr) {
   
   if (*page & _PAGE_CUSTOM_USABLE) {
     uint64_t addr = *page & _MASK_REMOVE_12L;
-    free_phys_page((void *) addr);
+    pmm_free_page(addr);
   }
 
   *page = 0;

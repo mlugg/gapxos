@@ -93,7 +93,7 @@ void cpu_init_ap_payload(void) {
 }
 
 void cpu_free_ap_payload(void) {
-  free_phys_page((void *)(uint64_t)pmm_ap_low_page);
+  pmm_free_page((uint64_t)pmm_ap_low_page);
 }
 
 static void _cpu_started(struct ap_data volatile *data) {
