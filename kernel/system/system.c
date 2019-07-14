@@ -9,6 +9,8 @@
 #include "apic/apic.h"
 #include "apic/cpu.h"
 
+#include "mem_mgmt/vmm/paging.h"
+
 struct memory_manager kern_vmm;
 
 struct memory_manager setup_kern_vmm() {
@@ -28,6 +30,7 @@ struct memory_manager setup_kern_vmm() {
 // At this point, all boot info has been dealt with. Physical memory management is set up.
 void system_main(struct system_info info) {
   print("Initializing kernel virtual memory...\n");
+  init_paging();
   kern_vmm = setup_kern_vmm();
 
   acpi_init(info.acpi, info.acpi_version == 2);

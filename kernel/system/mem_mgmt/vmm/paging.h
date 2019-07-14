@@ -13,3 +13,5 @@ struct page_flags {
 void set_page(uint64_t *pml4t, uint64_t vaddr, uint64_t paddr, struct page_flags flags);
 
 void free_page(uint64_t *pml4t, uint64_t vaddr);
+
+void init_paging(void);

@@ -1,68 +1,115 @@
-#include <stdint.h>
+#define PAGE_TABLE_LEVELS 4
+
 #include "paging.h"
+#include <stdint.h>
 #include "../pmm.h"
 
-#define _PAGE_PRESENT (1<<0)
-#define _PAGE_RW      (1<<1)
-#define _PAGE_USER    (1<<2)
-#define _PAGE_GLOBAL  (1<<8)
-//#define _PAGE_NX      (1<<63)
-#define _PAGE_NX      (0x8000000000000000)
-#define _PAGE_CUSTOM_USABLE (1<<9)
-
-// Addresses must have the most significant 16 bits equal the next most significant bit. Sometimes we don't want this 
-#define _MASK_REMOVE_16U (0xffffffffffff)
-
-// The lower 12 bits are all flags in page tables
-#define _MASK_REMOVE_12L (0xfffffffff000)
-
-static uint64_t *get_page_table_entry(uint64_t *pml4t, uint64_t vaddr, uint64_t flags_add) {
-  uint64_t offset = PHYSICAL_MAP_OFFSET / 8;
-  pml4t += offset;
-
-  int i = vaddr / 0x8000000000;
-  vaddr %= 0x8000000000;
-  if (!(pml4t[i] & _PAGE_PRESENT))
-    pml4t[i] = (uint64_t) pmm_alloc_page() | _PAGE_PRESENT;
-  pml4t[i] |= flags_add;
-  uint64_t *pdpt = (void *)(pml4t[i] & _MASK_REMOVE_12L);
-  pdpt += offset;
-  
-  i = vaddr / 0x40000000;
-  vaddr %= 0x40000000;
-  if (!(pdpt[i] & _PAGE_PRESENT))
-    pdpt[i] = (uint64_t) pmm_alloc_page() | _PAGE_PRESENT;
-  pdpt[i] |= flags_add;
-  uint64_t *pdt = (void *)(pdpt[i] & _MASK_REMOVE_12L);
-  pdt += offset;
-
-  i = vaddr / 0x200000;
-  vaddr %= 0x200000;
-  if (!(pdt[i] & _PAGE_PRESENT))
-    pdt[i] = (uint64_t) pmm_alloc_page() | _PAGE_PRESENT;
-  pdt[i] |= flags_add;
-  uint64_t *pt = (void *)(pdt[i] & _MASK_REMOVE_12L);
-  pt += offset;
-
-  i = vaddr / 0x1000;
-  return pt + i;
+// Converts an address to canonical form
+static uint64_t _canonical_addr(uint64_t addr) {
+  uint8_t bits = 12 + 9 * PAGE_TABLE_LEVELS;
+  uint8_t end = (addr >> (bits - 1)) & 1;
+  if (end) addr |= ~0ULL << bits;
+  else addr &= ~(~0ULL << bits);
+  return addr;
 }
 
-// Sets the page tables for a given vaddr to a certain paddr, applying the given flags
-// Expects for nothing else to be writing to the page tables to avoid race conditions
-// If physical page is PRESENT and USABLE, it is first freed.
-void set_page(uint64_t *pml4t, uint64_t vaddr, uint64_t paddr, struct page_flags flags) {
-  uint64_t table_flags = 0;
+static uint64_t *_indices_to_address(uint8_t end_level, uint16_t *indices) {
+  uint64_t addr = 0;
 
-  table_flags |= flags.present ? _PAGE_PRESENT : 0;
-  table_flags |= flags.write ? _PAGE_RW : 0;
-  table_flags |= flags.kernel ? _PAGE_GLOBAL : _PAGE_USER;
-  table_flags |= flags.usable ? _PAGE_CUSTOM_USABLE : 0;
+  uint8_t wait_levels = PAGE_TABLE_LEVELS - end_level;
 
-  paddr &= _MASK_REMOVE_12L & ~(_PAGE_NX); // The NX bit is in the upper place
+  for (uint8_t i = 0; i < PAGE_TABLE_LEVELS; ++i) {
+    if (i < wait_levels) addr |= 511;
+    else addr |= indices[i - wait_levels];
+    addr <<= 9;
+  }
 
-  uint64_t *page = get_page_table_entry(pml4t, vaddr & _MASK_REMOVE_16U, table_flags);
-  *page = paddr | table_flags | (flags.exec ? 0 : _PAGE_NX);
+  addr <<= 3;
+
+  addr |= indices[end_level] << 3;
+
+  return (void *)_canonical_addr(addr);
+}
+
+#define PAGE_PRESENT  (1 << 0)
+#define PAGE_WRITE    (1 << 1)
+#define PAGE_USER     (1 << 2)
+#define PAGE_NO_CACHE (1 << 4)
+#define PAGE_ACCESSED (1 << 5)
+#define PAGE_DIRTY    (1 << 6)
+#define PAGE_SIZE     (1 << 7)
+#define PAGE_GLOBAL   (1 << 8)
+#define PAGE_NO_EXEC  (1ULL << 63)
+
+static uint16_t _pop_top_index(uint64_t *addr) {
+  uint8_t addr_bits = 12 + 9 * PAGE_TABLE_LEVELS;
+  uint16_t index = (*addr >> (addr_bits - 9)) & ((1 << 9) - 1);
+  *addr <<= 9;
+  return index;
+}
+
+struct paging_flags {
+  uint8_t exec:1;
+  uint8_t write:1;
+  uint8_t user:1;
+  uint8_t global:1;
+};
+
+// Sets the address and flags for a page table entry.
+//  size: the level from the bottom at which to end the page table walk.
+//    0: 4KiB page
+//    1: 2MiB page
+//    2: 1GiB page (support is CPU-dependent)
+//  vaddr: The virtual address to change the mapping for
+//  paddr: The physical address to map the page to
+//  flags: The flags to set on the page
+void paging_map_page(uint8_t size, uint64_t vaddr, uint64_t paddr, struct paging_flags flags) {
+  uint8_t levels = PAGE_TABLE_LEVELS - size;
+
+  uint16_t indices[levels];
+
+  // Iterate through all parent page tables
+  for (uint8_t i = 0; i < levels - 1; ++i) {
+    /*
+     * Calculate the index into this table, then remove from the virtual
+     * address the upper 9 bits which are handled by this layer of page
+     * tables
+     */
+    indices[i] = _pop_top_index(&vaddr);
+
+    // Get a pointer to this entry in the tables
+    uint64_t *entry = _indices_to_address(i, indices);
+
+    // If the entry does not have the PRESENT bit set, allocate some physical memory to it
+    if (!(*entry & PAGE_PRESENT)) {
+      // TODO: Allocate memory
+      *entry = pmm_alloc_page();
+
+      *entry |= PAGE_PRESENT;
+
+      // Regardless of whether we want these flags on the final page, we may as well set them here
+      *entry |= PAGE_WRITE;
+      *entry |= PAGE_USER;
+
+      // We don't want the NX bit to be set, but if this is higher-half physical memory it could currently be
+      // If we need the NX bit, we only need to set it on the last layer of tables
+      *entry &= ~PAGE_NO_EXEC;
+    }
+  }
+
+  indices[levels - 1] = _pop_top_index(&vaddr);
+  uint64_t *entry = _indices_to_address(levels - 1, indices);
+
+  // Clear lower 12 bits of physical address as they correspond to flags
+  paddr &= ~0ULL << 12;
+
+  *entry = paddr;
+
+  *entry |= PAGE_PRESENT;
+  if (!flags.exec) *entry |= PAGE_NO_EXEC;
+  if (flags.write) *entry |= PAGE_WRITE;
+  if (flags.user) *entry |= PAGE_USER;
+  if (flags.global) *entry |= PAGE_GLOBAL;
 
   __asm__ volatile(
       "invlpg (%0)"
@@ -70,18 +117,74 @@ void set_page(uint64_t *pml4t, uint64_t vaddr, uint64_t paddr, struct page_flags
       : "r" (vaddr)
       : "memory"
   );
+}
 
-  // TODO: When MP is implemented, invalidate across all processors
+static uint8_t _table_is_empty(uint64_t *table) {
+  table = (uint64_t *)((uint64_t)table & ~0ULL << 12);
+  for (uint16_t i = 0; i < 512; ++i) {
+    if (table[i] & PAGE_PRESENT) return 0;
+  }
+  return 1;
+}
+
+void paging_clear_page(uint64_t vaddr) {
+  uint16_t indices[PAGE_TABLE_LEVELS];
+
+  uint64_t *entries[PAGE_TABLE_LEVELS];
+
+  uint8_t idx;
+  for (idx = 0; idx < PAGE_TABLE_LEVELS; ++idx) {
+    /*
+     * Calculate the index into this table, then remove from the virtual
+     * address the upper 9 bits which are handled by this layer of page
+     * tables
+     */
+    indices[idx] = _pop_top_index(&vaddr);
+
+    // Get a pointer to this entry in the tables
+    uint64_t *entry = _indices_to_address(idx, indices);
+
+    entries[idx] = entry;
+
+    // If the page isn't present, don't do anything
+    if (!(*entry & PAGE_PRESENT)) return;
+
+    // If the size bit is set, we've hit a huge page so we can stop walking the tables
+    if (*entry & PAGE_SIZE) break;
+  }
+
+  --idx;
+
+  // Free the page and set its entry in the lowest page table to zero
+  pmm_free_page(*entries[idx] & (~0ULL << 12));
+  *entries[idx] = 0;
+
+  // While the current page table is empty and we've not hit the root of the tree, free another level up
+  while (--idx && _table_is_empty(entries[idx])) {
+    pmm_free_page(*entries[idx] & (~0ULL << 12));
+    *entries[idx] = 0;
+  }
+}
+
+void set_page(uint64_t *pml4t, uint64_t vaddr, uint64_t paddr, struct page_flags flags) {
+  struct paging_flags _flags = {0};
+  _flags.exec = flags.exec;
+  _flags.write = flags.write;
+  _flags.user = !flags.kernel;
+  _flags.global = 0;
+  paging_map_page(0, vaddr, paddr, _flags);
 }
 
 void free_page(uint64_t *pml4t, uint64_t vaddr) {
-  vaddr &= _MASK_REMOVE_16U;
-  uint64_t *page = get_page_table_entry(pml4t, vaddr, 0);
-  
-  if (*page & _PAGE_CUSTOM_USABLE) {
-    uint64_t addr = *page & _MASK_REMOVE_12L;
-    pmm_free_page(addr);
-  }
+  paging_clear_page(vaddr);
+}
 
-  *page = 0;
+void init_paging(void) {
+  uint64_t *pml4t;
+  __asm__ volatile(
+      "movq %%cr3, %0"
+      : "=r" (pml4t)
+  );
+
+  pml4t[511] = (uint64_t)pml4t | PAGE_PRESENT | PAGE_NO_EXEC;
 }

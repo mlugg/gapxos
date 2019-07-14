@@ -202,7 +202,7 @@ void lmain(void *mb_structure, void *page_structure_mem, void *stack, uint32_t s
 
   init_page_structure(page_structure_mem);
 
-  uint64_t stack_virt = 0xfffffffffffff000;
+  uint64_t stack_virt = 0xffffff7ffffff000;
   add_page(stack_virt, (uint32_t)stack, 0); // Map stack to end of memory
 
   void *image_end = (void *)((uint32_t)page_structure_mem + 4194304);
